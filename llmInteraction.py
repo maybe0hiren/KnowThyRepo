@@ -31,10 +31,15 @@ def createPrompt(question: str, chunks: List[Dict]) -> str:
     contextText = "\n\n---\n\n".join(contextBlocks)
 
     prompt = f"""
-                You are an expert software engineer.
-                Answer the question ONLY using the context below.
-                If the context does not contain enough information, say so clearly.
-                Do NOT guess or hallucinate.
+                You are an expert software engineer analyzing a software project.
+
+                Using ONLY the provided context, answer the question in detail.
+
+                Your answer MUST:
+                - Explain the purpose of the project
+                - Describe how the project works at a high level
+                - Mention key components or modules if present
+                - Be written as a structured explanation (paragraphs or bullet points)
                 Context:
                 {contextText}
                 Question:

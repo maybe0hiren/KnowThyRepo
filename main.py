@@ -9,7 +9,6 @@ from llmInteraction import llmInteraction
 
 def main():
     print("Project QA Assistant")
-
     projectPath = input("Enter project folder path: ").strip()
 
     projectRoot = Path(projectPath).expanduser().resolve()
@@ -28,6 +27,7 @@ def main():
     index, metadata = loadData()
 
     idToContent = {c["chunkID"]: c["content"] for c in chunks}
+
     while True:
         question = input(">> ").strip()
 
