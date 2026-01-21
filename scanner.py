@@ -3,11 +3,11 @@ from pathlib import Path
 from typing import List, Dict
 
 allowedFiles = {
-    ".py", ".js", ".ts", ".cpp", ".h", ".java", ".go", ".rs", "md", ".txt", ".json", ".yaml", ".yml"
+    ".py", ".js", ".ts", ".cpp", ".h", ".java", ".go", ".rs", ".md", ".txt", ".json", ".yaml", ".yml"
 }
 
 ignored = {
-    ".git", "node_modules", "dist", "build", "__pycache__", ".env", "env", "venv"
+    ".git", "node_modules", "dist", "build", "__pycache__", "env", "venv"
 }
 
 
@@ -50,7 +50,6 @@ def projectScanner(projectRoot: str) -> List[Dict]:
                 "path": str(filePath.relative_to(projectRoot)),
                 "language": detectLanguage(filePath),
                 "content": content,
-                "lineCount": content.count("\n") + 1
             })
     return scannedFiles
 

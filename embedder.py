@@ -13,7 +13,7 @@ metadataFile = "data/metadata.json"
 def embedder(chunks: List[Dict]) -> None:
     if not chunks:
         raise ValueError("No chunks provided")
-    model = ST[modelName]
+    model = ST(modelName)
     texts = [chunk["content"] for chunk in chunks]
     embeddings = model.encode(
         texts,
@@ -25,7 +25,7 @@ def embedder(chunks: List[Dict]) -> None:
 
     dimension = embeddings.shape[1]
 
-    index = faiss.indexFlatIP(dimension)
+    index = faiss.IndexFlatIP(dimension)
 
     index.add(embeddings)
     
@@ -33,7 +33,7 @@ def embedder(chunks: List[Dict]) -> None:
     
     metadata = []
     for i, chunk in enumerate(chunks):
-        meta = chink.copy()
+        meta = chunk.copy()
         meta.pop("content")
         meta["vector_id"] = i
         metadata.append(meta)

@@ -52,10 +52,10 @@ def splitContentByPattern(text: str, pattern: str) -> List[Dict]:
 
 def splitForMarkdown(text: str) -> List[Dict]:
     pattern = r'^#{1,6} '
-    return chunk_code_by_pattern(text, pattern)
+    return splitContentByPattern(text, pattern)
 
 
-def chunker(scannedFiles: List[Dict]) -> List[Dist]:
+def chunker(scannedFiles: List[Dict]) -> List[Dict]:
     chunks = []
     chunkID = 0
 
