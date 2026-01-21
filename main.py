@@ -10,18 +10,18 @@ from llmInteraction import llmInteraction
 def main():
     print("Project QA Assistant")
 
-    project_path = input("Enter project folder path: ").strip()
+    projectPath = input("Enter project folder path: ").strip()
 
-    project_root = Path(project_path).expanduser().resolve()
+    projectRoot = Path(projectPath).expanduser().resolve()
 
-    if not project_root.exists() or not project_root.is_dir():
-        print(f"Invalid project path: {project_root}")
+    if not projectRoot.exists() or not projectRoot.is_dir():
+        print(f"Invalid project path: {projectRoot}")
         return
 
-    print(f"\nIndexing project: {project_root}")
+    print(f"\nIndexing project: {projectRoot}")
     print("Type 'exit' to quit\n")
 
-    scanned = projectScanner(str(project_root))
+    scanned = projectScanner(str(projectRoot))
     chunks = chunker(scanned)
     embedder(chunks)
 
