@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from scanner import projectScanner
 from chunker import chunker
 from embedder import embedder
@@ -7,19 +9,28 @@ from llmInteraction import llmInteraction
 
 def main():
     print("Project QA Assistant")
+
+    project_path = input("Enter project folder path: ").strip()
+
+    project_root = Path(project_path).expanduser().resolve()
+
+    if not project_root.exists() or not project_root.is_dir():
+        print(f"Invalid project path: {project_root}")
+        return
+
+    print(f"\nIndexing project: {project_root}")
     print("Type 'exit' to quit\n")
 
-    scanned = project_scanner(".")
+    scanned = projectScanner(str(project_root))
     chunks = chunker(scanned)
-
     embedder(chunks)
 
-    index, metadata = load_data()
+    index, metadata = loadData()
 
     idToContent = {c["chunkID"]: c["content"] for c in chunks}
-
     while True:
         question = input(">> ").strip()
+
         if question.lower() in {"exit", "quit"}:
             break
 
@@ -32,7 +43,7 @@ def main():
             contextChunk.append(r)
 
         if not contextChunk:
-            print("No relevant context found.\n")
+            print("\nNo relevant context found.\n")
             continue
 
         answer = llmInteraction(question, contextChunk)
