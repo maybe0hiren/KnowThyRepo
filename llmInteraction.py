@@ -1,20 +1,7 @@
 import os
 from typing import List, Dict
-
-from dotenv import load_dotenv
 from google import genai
 
-
-
-load_dotenv()
-
-LLM = os.getenv("GEMINI_KEY")
-if not LLM:
-    raise RuntimeError("API key not found in environment")
-
-client = genai.Client(api_key=LLM)
-
-modelName = "models/gemini-2.5-flash"
 
 def createPrompt(question: str, chunks: List[Dict]) -> str:
 
@@ -43,7 +30,11 @@ def createPrompt(question: str, chunks: List[Dict]) -> str:
             """.strip()
     return prompt
 
-def llmInteraction(question: str, chunks: List[Dict]) -> str:
+def llmInteraction(question: str, chunks: List[Dict], apiKey: str) -> str:
+    if not apiKey:
+        raise RuntimeError("API key invalid")
+    client = genai.Client(api_key=apiKey)
+    modelName = "models/gemini-2.5-flash"
     prompt = createPrompt(question, chunks)
     response = client.models.generate_content(
         model=modelName,
