@@ -2,7 +2,7 @@ import os
 from typing import List, Dict
 
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 
 
 
@@ -12,7 +12,7 @@ LLM = os.getenv("GEMINI_KEY")
 if not LLM:
     raise RuntimeError("API key not found in environment")
 
-genai.configure(api_key=LLM)
+client = genai.Client(api_key=LLM)
 
 modelName = "models/gemini-2.5-flash"
 
@@ -31,15 +31,11 @@ def createPrompt(question: str, chunks: List[Dict]) -> str:
     contextText = "\n\n---\n\n".join(contextBlocks)
 
     prompt = f"""
-                You are an expert software engineer analyzing a software project.
-
+                You are an expert software engineer chatbot analyzing a software project.
                 Using ONLY the provided context, answer the question in detail.
-
-                Your answer MUST:
-                - Explain the purpose of the project
-                - Describe how the project works at a high level
-                - Mention key components or modules if present
-                - Be written as a structured explanation (paragraphs or bullet points)
+                Althought you are an expert, you have to wrap up the content like a chatbit would, keep the import points but the answer should be short and crisp.
+                The answers must look like a chat and not an essay, so keep it simple, no headings and titles.
+                Wrap your answer in 3-4 sentences max.
                 Context:
                 {contextText}
                 Question:
@@ -49,12 +45,8 @@ def createPrompt(question: str, chunks: List[Dict]) -> str:
 
 def llmInteraction(question: str, chunks: List[Dict]) -> str:
     prompt = createPrompt(question, chunks)
-    model = genai.GenerativeModel(modelName)
-    response = model.generate_content(
-        prompt,
-        generation_config={
-            "temperature": 0.2,
-            "max_output_tokens": 1024
-        }
+    response = client.models.generate_content(
+        model=modelName,
+        contents=prompt
     )
     return response.text.strip()
