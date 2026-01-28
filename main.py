@@ -7,42 +7,64 @@ from search import loadData, search
 from llmInteraction import llmInteraction
 from repoCloner import repoCloner
 
+from cleanup import cleanup
+from repoGuard import validateRepo
+
 
 def main(apiKey: str, repoLink: str, question: str) -> str:
+    cleanup()
+
     projectPath = repoCloner(repoLink)
     projectRoot = Path(projectPath).resolve()
 
-    if not projectRoot.exists():
-        return "Invalid repo path."
+    if not projectRoot.exists() or not projectRoot.is_dir():
+        return "Repository could not be cloned or accessed."
 
     repoName = projectRoot.name
 
+    try:
+        validateRepo(str(projectRoot))
+    except Exception as e:
+        return f"Repo rejected: {str(e)}"
+
     repoDataFolder = Path("data") / repoName
     indexFile = repoDataFolder / "index.faiss"
+    metadataFile = repoDataFolder / "metadata.json"
+    chunksFile = repoDataFolder / "chunks.json"
 
-    # Build embeddings only once
-    if not indexFile.exists():
+    if indexFile.exists() and metadataFile.exists() and chunksFile.exists():
+        print(f"Index already exists for '{repoName}', skipping embedding...")
+    else:
+        print(f"Indexing repo: {repoName}")
+
         scanned = projectScanner(str(projectRoot))
         chunks = chunker(scanned)
+
         embedder(chunks, repoName)
 
-    # ✅ Load index + metadata + chunks.json
-    index, metadata, chunks = loadData(repoName)
+    try:
+        index, metadata, chunks = loadData(repoName)
+    except Exception:
+        return "Failed to load index files. Try re-indexing."
 
-    # Search
-    retrieved = search(question, index, metadata)
+    retrieved = search(question, index, metadata, top_k=6)
 
     if not retrieved:
-        return "No relevant context found."
+        return "No relevant context found in this repository."
 
     idToChunk = {c["chunkID"]: c for c in chunks}
 
     contextChunks = []
     for r in retrieved:
-        cid = r["chunkID"]
-        chunkData = idToChunk.get(cid)
-
+        chunkData = idToChunk.get(r["chunkID"])
         if chunkData:
             contextChunks.append(chunkData)
 
-    return llmInteraction(question, contextChunks, apiKey)
+    if not contextChunks:
+        return "Relevant chunks were found, but content could not be loaded."
+
+    try:
+        answer = llmInteraction(question, contextChunks, apiKey)
+        return answer
+    except Exception as e:
+        return f"LLM Error: {str(e)}"
