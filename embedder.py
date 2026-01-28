@@ -3,13 +3,16 @@ from typing import List, Dict
 from pathlib import Path
 
 import faiss
-from sentence_transformers import SentenceTransformer as ST
+# from sentence_transformers import SentenceTransformer as ST
+from google import genai
+import numpy as np
 
 
-modelName = "all-MiniLM-L6-v2"
+# modelName = "all-MiniLM-L6-v2"
+geminiEmbedder = "models/text-embedding-004"
 
 
-def embedder(chunks: List[Dict], repoName: str) -> None:
+def embedder(chunks: List[Dict], repoName: str, apiKey: str) -> None:
     if not chunks:
         raise ValueError("No chunks provided")
 
@@ -20,16 +23,20 @@ def embedder(chunks: List[Dict], repoName: str) -> None:
     metadataFile = repoFolder / "metadata.json"
     chunksFile = repoFolder / "chunks.json"
 
-    model = ST(modelName)
+    # model = ST(modelName)
     texts = [chunk["content"] for chunk in chunks]
 
-    embeddings = model.encode(
-        texts,
-        batch_size=32,
-        show_progress_bar=True,
-        convert_to_numpy=True,
-        normalize_embeddings=True
-    )
+    client = genai.Client(api_key=apiKey)
+
+    vectors = []
+    for text in texts:
+        response = client.models.embed_content(
+            model=geminiEmbedder,
+            contents=text
+        )
+        vectors.append(response.embeddings[0].values)
+
+    embeddings = np.array(vectors).astype("float32")
 
     dimension = embeddings.shape[1]
     index = faiss.IndexFlatIP(dimension)

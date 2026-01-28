@@ -40,14 +40,14 @@ def main(apiKey: str, repoLink: str, question: str) -> str:
         scanned = projectScanner(str(projectRoot))
         chunks = chunker(scanned)
 
-        embedder(chunks, repoName)
+        embedder(chunks, repoName, apiKey)
 
     try:
         index, metadata, chunks = loadData(repoName)
     except Exception:
         return "Failed to load index files. Try re-indexing."
 
-    retrieved = search(question, index, metadata, top_k=6)
+    retrieved = search(question, index, metadata, apiKey, top_k=6)
 
     if not retrieved:
         return "No relevant context found in this repository."
