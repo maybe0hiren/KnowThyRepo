@@ -25,6 +25,12 @@ def rateLimited(ip: str) -> bool:
     return False
 
 
+
+@app.route("/")
+def home():
+    return "KnowThyRepo is running!"
+
+
 @app.route("/knowThyRepo", methods=["POST"])
 def knowThyRepo():
     ip = request.remote_addr
@@ -55,7 +61,5 @@ def knowThyRepo():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 if __name__ == "__main__":
-    print("KnowThyRepo running at http://localhost:8000")
     app.run(host="0.0.0.0", port=8000, debug=True)
