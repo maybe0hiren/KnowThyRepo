@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from main import main
 
 import time
+import traceback
 
 app = Flask(__name__)
 
@@ -23,7 +24,6 @@ def rateLimited(ip: str) -> bool:
 
     ip_requests[ip].append(now)
     return False
-
 
 
 @app.route("/")
@@ -52,14 +52,16 @@ def knowThyRepo():
     apiKey = auth.replace("Bearer ", "").strip()
 
     if not repoLink or not question or not apiKey:
-        return jsonify({"error": "Required: repoLink, question, apiKey"}), 400
+        return jsonify({"error": "Required fields: repoLink, question, apiKey"}), 400
 
     try:
         answer = main(apiKey, repoLink, question)
         return jsonify({"answer": answer})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        traceback.print_exc()
+        return jsonify({"error": repr(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)

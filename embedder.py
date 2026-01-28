@@ -9,7 +9,7 @@ import numpy as np
 
 
 # modelName = "all-MiniLM-L6-v2"
-geminiEmbedder = "models/text-embedding-004"
+geminiEmbedder = "models/gemini-embedding-001"
 
 
 def embedder(chunks: List[Dict], repoName: str, apiKey: str) -> None:

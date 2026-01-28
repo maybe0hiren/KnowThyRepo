@@ -9,7 +9,7 @@ import numpy as np
 
 
 # modelName = "all-MiniLM-L6-v2"
-embedModel = "models/text-embedding-004"
+geminiEmbedder = "models/gemini-embedding-001"
 
 # model = ST(modelName)
 
@@ -42,7 +42,7 @@ def search(query: str, index, metadata: List[Dict], apiKey: str, top_k: int = 6)
     # )
 
     response = client.models.embed_content(
-        model=embedModel,
+        model=geminiEmbedder,
         contents=query
     )
 
