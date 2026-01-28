@@ -1,4 +1,4 @@
-#KnowThyRepo
+# KnowThyRepo
 
 An AI-powered repository assistant that can clone any
 GitHub project, index its codebase, and answer natural-language
