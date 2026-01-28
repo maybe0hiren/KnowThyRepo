@@ -1,21 +1,21 @@
-# KnowThyRepo
+# 📌 KnowThyRepo
 
-An AI-powered repository assistant that can clone any
+KnowThyRepo is an AI-powered repository assistant that can **clone any
 GitHub project, index its codebase, and answer natural-language
-questions about it using a Retrieval-Augmented Generation (RAG)
+questions about it** using a Retrieval-Augmented Generation (RAG)
 pipeline.
 
 ------------------------------------------------------------------------
 
-## Introduction
+## 🚀 Introduction
 
 KnowThyRepo helps developers, recruiters, and learners quickly
 understand any codebase by allowing them to ask questions such as:
 
--   What does this project do?
--   Which files handle authentication?
--   How is the backend structured?
--   What are the key modules in this repository?
+-   *What does this project do?*
+-   *Which file handles authentication?*
+-   *How is the backend structured?*
+-   *What are the key modules in this repository?*
 
 Instead of giving generic AI responses, KnowThyRepo retrieves the most
 relevant parts of the repository and uses them as context before
@@ -23,116 +23,138 @@ generating an answer.
 
 ------------------------------------------------------------------------
 
-## Architecture
+## 🧠 Architecture
 
-KnowThyRepo follows a Retrieval-Augmented Generation (RAG) architecture:
+KnowThyRepo follows a **Retrieval-Augmented Generation (RAG)**
+architecture:
 
-1. Repository Cloning
+### 1. Repository Cloning
 
--   Accepts a GitHub repo link
+-   Accepts a GitHub repository link
 -   Clones it locally (cached if already cloned)
 
-2. Project Scanning
+### 2. Project Scanning
 
--   Recursively scans source code and documentation files
--   Ignores unnecessary folders (node_modules, .git, venv, etc.)
+-   Recursively scans code + documentation files
+-   Ignores unnecessary folders (`node_modules`, `.git`, `venv`, etc.)
 
-3. Chunking
+### 3. Chunking
 
--   Splits files into meaningful chunks:
-    -   Functions and classes for code
-    -   Headings for markdown
-    -   Full config blocks for JSON/YAML
+Splits repository files into meaningful chunks: - Functions/classes for
+code - Headings for markdown - Full blocks for config files
 
-4. Embedding + Vector Indexing
+### 4. Embedding + Vector Indexing
 
 -   Converts chunks into embeddings using Sentence Transformers
--   Stores embeddings in a FAISS vector index
+-   Stores embeddings inside a FAISS vector database
 
-5. Repo-Specific Storage
+### 5. Repo-Specific Persistent Storage
 
-Each repository gets its own persistent index:
+Each repository gets its own dedicated index:
 
     data/<repoName>/
        index.faiss
        metadata.json
        chunks.json
 
-6. Retrieval + Answer Generation
+This prevents overwriting and allows multi-repo support.
 
--   User question → vector search retrieves relevant chunks
--   Gemini LLM generates a short, grounded answer based only on
-    retrieved context
+### 6. Retrieval + Answer Generation
 
-------------------------------------------------------------------------
-
-## Tech Stack
-
-Core Language
-
--   Python 3.10+
-
-Vector Search + Embeddings
-
--   FAISS
--   SentenceTransformers (all-MiniLM-L6-v2)
-
-LLM Provider
-
--   Google Gemini API (google-genai)
-
-Backend API
-
--   Flask (REST API endpoint)
+-   User question → FAISS similarity search retrieves top chunks
+-   Gemini generates an answer using ONLY retrieved context
 
 ------------------------------------------------------------------------
 
-## Python Packages Required
+## 🔑 BYOK Support (Bring Your Own Gemini Key)
 
-    flask
-    faiss-cpu
-    sentence-transformers
-    python-dotenv
-    google-genai
+KnowThyRepo uses a secure **BYOK model**, meaning: - Users submit their
+own Gemini API key - The key is used only for that request - Keys are
+never stored on the server
+
+This ensures public usability without consuming the developer's quota.
 
 ------------------------------------------------------------------------
 
-## Running the Backend
+## 🛡️ Public Safety Features
+
+To make KnowThyRepo safe for public deployment, the backend includes:
+
+-   ✅ Rate limiting to prevent spam
+-   ✅ Repository size limits (max file count + size)
+-   ✅ Index caching (embeddings built only once per repo)
+-   ✅ Automatic cleanup of old cloned repos
+
+------------------------------------------------------------------------
+
+## 🛠 Tech Stack
+
+-   **Python 3.10+**
+-   **Flask**
+-   **FAISS**
+-   **SentenceTransformers**
+-   **Google Gemini API (`google-genai`)**
+-   **Gunicorn**
+
+------------------------------------------------------------------------
+
+## 📦 Python Packages Required
+
+Install dependencies:
+
+``` bash
+pip install flask
+pip install faiss-cpu
+pip install sentence-transformers
+pip install python-dotenv
+pip install google-genai
+pip install gunicorn
+```
+
+------------------------------------------------------------------------
+
+## ⚙️ Running the Backend
 
 Start the Flask server:
 
-    python app.py
+``` bash
+python app.py
+```
 
-The backend will run at:
+Backend runs at:
 
     http://localhost:8000
 
 ------------------------------------------------------------------------
 
-## API Usage
+## 🔥 API Usage
 
 Send a POST request:
 
-    curl -X POST http://localhost:8000/knowThyRepo \
-      -H "Content-Type: application/json" \
-      -d '{
-        "repoLink": "https://github.com/user/repo",
-        "question": "What does this project do?",
-        "apiKey": "YOUR_GEMINI_API_KEY"
-      }'
+``` bash
+curl -X POST http://localhost:8000/knowThyRepo \
+  -H "Authorization: Bearer YOUR_GEMINI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repoLink": "https://github.com/user/repo",
+    "question": "What does this project do?"
+  }'
+```
 
 Response:
 
-    {
-      "answer": "This repository implements..."
-    }
+``` json
+{
+  "answer": "This repository implements..."
+}
+```
 
 ------------------------------------------------------------------------
 
-## Project Scope
+## 🌟 Project Scope
 
--   Integrate into a portfolio website so recruiters can interact
-    directly
--   Add conversation memory for multi-turn context
+-   Integrate into a portfolio website
+-   Add multi-turn chat memory
 -   Detect repo updates and re-index only changed files
--   Support multiple repos seamlessly
+-   Add user authentication + quotas
+
