@@ -11,21 +11,23 @@ def know_thy_repo():
     if not data:
         return jsonify({"error": "Missing JSON body"}), 400
 
-    projectPath = data.get("projectPath")
+    repoLink = data.get("repoLink")
     question = data.get("question")
     apiKey = data.get("apiKey")
 
-    if not all([projectPath, question, apiKey]):
+    if not all([repoLink, question, apiKey]):
         return jsonify({
-            "error": "Required fields: projectPath, question, apiKey"
+            "error": "Required fields: repoLink, question, apiKey"
         }), 400
 
     try:
-        result = main(apiKey, projectPath, question)
-        return jsonify({"answer": result})
+        answer = main(apiKey, repoLink, question)
+        return jsonify({"answer": answer})
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
+    print("KnowThyRepo backend running on http://localhost:8000")
     app.run(host="0.0.0.0", port=8000, debug=True)

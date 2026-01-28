@@ -5,31 +5,44 @@ from chunker import chunker
 from embedder import embedder
 from search import loadData, search
 from llmInteraction import llmInteraction
+from repoCloner import repoCloner
 
 
-def main(apiKey: str, projectPath: str, question: str) -> str:
-    projectRoot = Path(projectPath).expanduser().resolve()
-    if not projectRoot.exists() or not projectRoot.is_dir():
-        print(f"Invalid project path: {projectRoot}")
-        return
+def main(apiKey: str, repoLink: str, question: str) -> str:
+    projectPath = repoCloner(repoLink)
+    projectRoot = Path(projectPath).resolve()
 
-    scanned = projectScanner(str(projectRoot))
-    chunks = chunker(scanned)
-    embedder(chunks)
+    if not projectRoot.exists():
+        return "Invalid repo path."
 
-    index, metadata = loadData()
+    repoName = projectRoot.name
 
-    idToContent = {c["chunkID"]: c["content"] for c in chunks}
+    repoDataFolder = Path("data") / repoName
+    indexFile = repoDataFolder / "index.faiss"
 
-    retrieved = search(question, index, metadata, top_k=6)
+    # Build embeddings only once
+    if not indexFile.exists():
+        scanned = projectScanner(str(projectRoot))
+        chunks = chunker(scanned)
+        embedder(chunks, repoName)
 
-    contextChunk = []
+    # ✅ Load index + metadata + chunks.json
+    index, metadata, chunks = loadData(repoName)
+
+    # Search
+    retrieved = search(question, index, metadata)
+
+    if not retrieved:
+        return "No relevant context found."
+
+    idToChunk = {c["chunkID"]: c for c in chunks}
+
+    contextChunks = []
     for r in retrieved:
         cid = r["chunkID"]
-        r["content"] = idToContent.get(cid, "")
-        contextChunk.append(r)
-    if not contextChunk:
-        return "No relevant context found"
+        chunkData = idToChunk.get(cid)
 
-    answer = llmInteraction(question, contextChunk, apiKey)
-    return answer
+        if chunkData:
+            contextChunks.append(chunkData)
+
+    return llmInteraction(question, contextChunks, apiKey)

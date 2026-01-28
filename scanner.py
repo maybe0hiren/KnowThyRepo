@@ -52,13 +52,3 @@ def projectScanner(projectRoot: str) -> List[Dict]:
                 "content": content,
             })
     return scannedFiles
-
-if __name__ == "__main__":
-    import json
-
-    project_path = "/home/Hiren/Documents/Cache/CloudStorage"
-    result = projectScanner(project_path)
-
-    print(f"Scanned {len(result)} files\n")
-    print(json.dumps(result[:2], indent=2))
-

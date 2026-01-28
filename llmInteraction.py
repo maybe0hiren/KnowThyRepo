@@ -23,6 +23,7 @@ def createPrompt(question: str, chunks: List[Dict]) -> str:
                 Althought you are an expert, you have to wrap up the content like a chatbit would, keep the import points but the answer should be short and crisp.
                 The answers must look like a chat and not an essay, so keep it simple, no headings and titles.
                 Wrap your answer in 3-4 sentences max.
+                No need to greet the user or even address him/her, just answer the question professionally
                 Context:
                 {contextText}
                 Question:

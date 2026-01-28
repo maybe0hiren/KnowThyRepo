@@ -1,36 +1,42 @@
 import json
 from typing import List, Dict
+from pathlib import Path
 
-import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer as ST
-from tqdm import tqdm
+
 
 modelName = "all-MiniLM-L6-v2"
-indexFile = "data/index.faiss"
-metadataFile = "data/metadata.json"
 
-def embedder(chunks: List[Dict]) -> None:
+
+def embedder(chunks: List[Dict], repoName: str) -> None:
     if not chunks:
         raise ValueError("No chunks provided")
+
+    repoFolder = Path("data") / repoName
+    repoFolder.mkdir(parents=True, exist_ok=True)
+
+    indexFile = repoFolder / "index.faiss"
+    metadataFile = repoFolder / "metadata.json"
+    chunksFile = repoFolder / "chunks.json"
+
     model = ST(modelName)
     texts = [chunk["content"] for chunk in chunks]
+
     embeddings = model.encode(
         texts,
-        batch_size = 32,
-        show_progress_bar = True,
-        convert_to_numpy = True,
-        normalize_embeddings = True
+        batch_size=32,
+        show_progress_bar=True,
+        convert_to_numpy=True,
+        normalize_embeddings=True
     )
 
     dimension = embeddings.shape[1]
-
     index = faiss.IndexFlatIP(dimension)
-
     index.add(embeddings)
-    
-    faiss.write_index(index, indexFile)
-    
+
+    faiss.write_index(index, str(indexFile))
+
     metadata = []
     for i, chunk in enumerate(chunks):
         meta = chunk.copy()
@@ -40,8 +46,8 @@ def embedder(chunks: List[Dict]) -> None:
 
     with open(metadataFile, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
-    
-    print(f"Stored {len(chunks)} embeddings")
-    print(f"FAISS index: {indexFile}")
-    print(f"Metadata: {metadataFile}")
-    
+
+    with open(chunksFile, "w", encoding="utf-8") as f:
+        json.dump(chunks, f, indent=2)
+
+    print(f"Stored embeddings + chunks for repo: {repoName}")
