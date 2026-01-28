@@ -47,6 +47,7 @@ code - Headings for markdown - Full blocks for config files
 
 -   Converts chunks into embeddings using Sentence Transformers
 -   Stores embeddings inside a FAISS vector database
+-   Using Gemini's embeddings for public hosting
 
 ### 5. Repo-Specific Persistent Storage
 
@@ -110,20 +111,6 @@ pip install python-dotenv
 pip install google-genai
 pip install gunicorn
 ```
-
-------------------------------------------------------------------------
-
-## ⚙️ Running the Backend
-
-Start the Flask server:
-
-``` bash
-python app.py
-```
-
-Backend runs at:
-
-    http://localhost:8000
 
 ------------------------------------------------------------------------
 
