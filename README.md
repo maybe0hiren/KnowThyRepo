@@ -119,7 +119,7 @@ pip install gunicorn
 Send a POST request:
 
 ``` bash
-curl -X POST http://localhost:8000/knowThyRepo \
+curl -X POST http://https://knowthyrepo.onrender.com/knowThyRepo \
   -H "Authorization: Bearer YOUR_GEMINI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
