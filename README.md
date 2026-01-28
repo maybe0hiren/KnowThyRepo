@@ -116,6 +116,8 @@ pip install gunicorn
 
 ## 🔥 API Usage
 
+Generate your Gemini's API key from https://developers.google.com/
+
 Send a POST request:
 
 ``` bash
