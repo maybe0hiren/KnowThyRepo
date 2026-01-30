@@ -1,5 +1,7 @@
 flask
 gunicorn
-faiss-cpu
+numpy
 python-dotenv
 google-genai
+qdrant-client
+tqdm
