@@ -8,17 +8,15 @@ from search import search
 from llmInteraction import llmInteraction
 from repoCloner import repoCloner
 
-from cleanup import cleanup
 from repoGuard import validateRepo
 
 from qdrant_client import QdrantClient
 
 
 def main(apiKey: str, repoLink: str, question: str) -> str:
-    cleanup()
 
     qdrantUrl = os.getenv("QDRANT_URL")
-    qdrantKey = os.getenv("QDRANT_API_KEY")
+    qdrantKey = os.getenv("QDRANT_KEY")
 
     if not qdrantUrl or not qdrantKey:
         return "Qdrant credentials missing in environment."
