@@ -1,18 +1,27 @@
+import os
 from pathlib import Path
 
 from scanner import projectScanner
 from chunker import chunker
 from embedder import embedder
-from search import loadData, search
+from search import search
 from llmInteraction import llmInteraction
 from repoCloner import repoCloner
 
 from cleanup import cleanup
 from repoGuard import validateRepo
 
+from qdrant_client import QdrantClient
+
 
 def main(apiKey: str, repoLink: str, question: str) -> str:
     cleanup()
+
+    qdrantUrl = os.getenv("QDRANT_URL")
+    qdrantKey = os.getenv("QDRANT_API_KEY")
+
+    if not qdrantUrl or not qdrantKey:
+        return "Qdrant credentials missing in environment."
 
     projectPath = repoCloner(repoLink)
     projectRoot = Path(projectPath).resolve()
@@ -27,44 +36,33 @@ def main(apiKey: str, repoLink: str, question: str) -> str:
     except Exception as e:
         return f"Repo rejected: {str(e)}"
 
-    repoDataFolder = Path("data") / repoName
-    indexFile = repoDataFolder / "index.faiss"
-    metadataFile = repoDataFolder / "metadata.json"
-    chunksFile = repoDataFolder / "chunks.json"
+    qdrant = QdrantClient(url=qdrantUrl, api_key=qdrantKey)
+    existing = [c.name for c in qdrant.get_collections().collections]
 
-    if indexFile.exists() and metadataFile.exists() and chunksFile.exists():
-        print(f"Index already exists for '{repoName}', skipping embedding...")
+    if repoName in existing:
+        print(f"Repo '{repoName}' already indexed in Qdrant, skipping embedding...")
     else:
         print(f"Indexing repo: {repoName}")
 
         scanned = projectScanner(str(projectRoot))
         chunks = chunker(scanned)
 
-        embedder(chunks, repoName, apiKey)
+        embedder(chunks, repoName, apiKey, qdrantUrl, qdrantKey)
 
-    try:
-        index, metadata, chunks = loadData(repoName)
-    except Exception:
-        return "Failed to load index files. Try re-indexing."
+    retrievedChunks = search(
+        question,
+        repoName,
+        apiKey,
+        qdrantUrl,
+        qdrantKey,
+        top_k=6
+    )
 
-    retrieved = search(question, index, metadata, apiKey, top_k=6)
-
-    if not retrieved:
+    if not retrievedChunks:
         return "No relevant context found in this repository."
 
-    idToChunk = {c["chunkID"]: c for c in chunks}
-
-    contextChunks = []
-    for r in retrieved:
-        chunkData = idToChunk.get(r["chunkID"])
-        if chunkData:
-            contextChunks.append(chunkData)
-
-    if not contextChunks:
-        return "Relevant chunks were found, but content could not be loaded."
-
     try:
-        answer = llmInteraction(question, contextChunks, apiKey)
+        answer = llmInteraction(question, retrievedChunks, apiKey)
         return answer
     except Exception as e:
         return f"LLM Error: {str(e)}"

@@ -1,45 +1,19 @@
-import json
 from typing import List, Dict
-from pathlib import Path
 
-import faiss
-# from sentence_transformers import SentenceTransformer as ST
 from google import genai
 import numpy as np
 
+from qdrant_client import QdrantClient
 
-# modelName = "all-MiniLM-L6-v2"
+
 geminiEmbedder = "models/gemini-embedding-001"
 
-# model = ST(modelName)
 
+def search(query: str, repoName: str, apiKey: str,
+           qdrantUrl: str, qdrantKey: str,
+           top_k: int = 6) -> List[Dict]:
 
-def loadData(repoName: str):
-    repoFolder = Path("data") / repoName
-
-    indexFile = repoFolder / "index.faiss"
-    metadataFile = repoFolder / "metadata.json"
-    chunksFile = repoFolder / "chunks.json"
-
-    index = faiss.read_index(str(indexFile))
-
-    with open(metadataFile, "r", encoding="utf-8") as f:
-        metadata = json.load(f)
-
-    with open(chunksFile, "r", encoding="utf-8") as f:
-        chunks = json.load(f)
-
-    return index, metadata, chunks
-
-
-def search(query: str, index, metadata: List[Dict], apiKey: str, top_k: int = 6) -> List[Dict]:
     client = genai.Client(api_key=apiKey)
-
-    # queryVector = model.encode(
-    #     [query],
-    #     convert_to_numpy=True,
-    #     normalize_embeddings=True
-    # )
 
     response = client.models.embed_content(
         model=geminiEmbedder,
@@ -49,17 +23,20 @@ def search(query: str, index, metadata: List[Dict], apiKey: str, top_k: int = 6)
     queryVector = np.array(
         response.embeddings[0].values,
         dtype="float32"
-    ).reshape(1, -1)
+    ).tolist()
 
-    scores, indices = index.search(queryVector, top_k)
+    qdrant = QdrantClient(url=qdrantUrl, api_key=qdrantKey)
 
-    results = []
-    for score, idx in zip(scores[0], indices[0]):
-        if idx == -1:
-            continue
+    results = qdrant.search(
+        collection_name=repoName,
+        query_vector=queryVector,
+        limit=top_k
+    )
 
-        chunkMeta = metadata[idx].copy()
-        chunkMeta["score"] = float(score)
-        results.append(chunkMeta)
+    chunks = []
+    for r in results:
+        payload = r.payload
+        payload["score"] = r.score
+        chunks.append(payload)
 
-    return results
+    return chunks

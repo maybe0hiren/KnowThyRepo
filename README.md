@@ -1,149 +1,160 @@
-# 📌 KnowThyRepo
+KnowThyRepo
+=====================
 
-KnowThyRepo is an AI-powered repository assistant that can **clone any
-GitHub project, index its codebase, and answer natural-language
-questions about it** using a Retrieval-Augmented Generation (RAG)
-pipeline.
+An AI-powered repository assistant that can clone any GitHub
+project, index its codebase, and answer natural-language questions about it
+using a Retrieval-Augmented Generation (RAG) pipeline.
 
-------------------------------------------------------------------------
+------------------------------------------------------------
+INTRODUCTION
+------------------------------------------------------------
 
-## 🚀 Introduction
+KnowThyRepo helps developers, recruiters, and learners quickly understand
+any codebase by asking questions such as:
 
-KnowThyRepo helps developers, recruiters, and learners quickly
-understand any codebase by allowing them to ask questions such as:
+- What does this project do?
+- Which file handles authentication?
+- How is the backend structured?
+- What are the key modules in this repository?
 
--   *What does this project do?*
--   *Which file handles authentication?*
--   *How is the backend structured?*
--   *What are the key modules in this repository?*
+Instead of generic AI answers, KnowThyRepo retrieves the most relevant
+parts of the repository and uses them as context before generating a response.
 
-Instead of giving generic AI responses, KnowThyRepo retrieves the most
-relevant parts of the repository and uses them as context before
-generating an answer.
+------------------------------------------------------------
+ARCHITECTURE
+------------------------------------------------------------
 
-------------------------------------------------------------------------
+KnowThyRepo follows a Retrieval-Augmented Generation (RAG) workflow:
 
-## 🧠 Architecture
+1. Repository Cloning
+   - Accepts a GitHub repository link
+   - Clones it locally (cached if already cloned)
 
-KnowThyRepo follows a **Retrieval-Augmented Generation (RAG)**
-architecture:
+2. Project Scanning
+   - Recursively scans code + documentation files
+   - Ignores unnecessary folders (node_modules, .git, venv, etc.)
 
-### 1. Repository Cloning
+3. Chunking
+   - Splits files into meaningful chunks:
+     * Functions/classes for code
+     * Headings for markdown
+     * Full blocks for config files
 
--   Accepts a GitHub repository link
--   Clones it locally (cached if already cloned)
+4. Embedding + Vector Indexing
+   - Converts chunks into embeddings using Gemini Embedding Models
+   - SentenceTransformers support exists, but Gemini embeddings are used
+     for lightweight public hosting.
 
-### 2. Project Scanning
+5. Persistent Storage with Qdrant Cloud
+   - Embeddings are stored permanently in Qdrant Cloud instead of local disk.
+   - Each repository becomes its own Qdrant collection:
 
--   Recursively scans code + documentation files
--   Ignores unnecessary folders (`node_modules`, `.git`, `venv`, etc.)
+       Collection Name: KnowThyRepo
+         - vectors (embeddings)
+         - payload (chunk metadata + content)
 
-### 3. Chunking
+   - This prevents re-indexing on every server restart and enables scalability.
 
-Splits repository files into meaningful chunks: - Functions/classes for
-code - Headings for markdown - Full blocks for config files
+6. Retrieval + Answer Generation
+   - User question is embedded using Gemini
+   - Qdrant similarity search retrieves top relevant chunks
+   - Gemini generates an answer using ONLY retrieved context
 
-### 4. Embedding + Vector Indexing
+------------------------------------------------------------
+BYOK SUPPORT (Bring Your Own Gemini Key)
+------------------------------------------------------------
 
--   Converts chunks into embeddings using Sentence Transformers
--   Stores embeddings inside a FAISS vector database
--   Using Gemini's embeddings for public hosting
+KnowThyRepo uses a secure BYOK model:
 
-### 5. Repo-Specific Persistent Storage
+- Users submit their own Gemini API key
+- The key is used only for that request
+- Keys are never stored on the server
 
-Each repository gets its own dedicated index:
+------------------------------------------------------------
+PUBLIC SAFETY FEATURES
+------------------------------------------------------------
 
-    data/<repoName>/
-       index.faiss
-       metadata.json
-       chunks.json
+To ensure safe public deployment, KnowThyRepo includes:
 
-This prevents overwriting and allows multi-repo support.
+- Rate limiting to prevent spam
+- Repository size limits (max file count + size)
+- Persistent indexing (embeddings built only once per repo)
+- Automatic cleanup of cloned repositories
 
-### 6. Retrieval + Answer Generation
+------------------------------------------------------------
+TECH STACK
+------------------------------------------------------------
 
--   User question → FAISS similarity search retrieves top chunks
--   Gemini generates an answer using ONLY retrieved context
+- Python 3.10+
+- Flask
+- Google Gemini API (google-genai)
+- Gemini Embedding Models
+- Qdrant Cloud Vector Database
+- Gunicorn
+- Render Deployment
 
-------------------------------------------------------------------------
-
-## 🔑 BYOK Support (Bring Your Own Gemini Key)
-
-KnowThyRepo uses a secure **BYOK model**, meaning: - Users submit their
-own Gemini API key - The key is used only for that request - Keys are
-never stored on the server
-
-This ensures public usability without consuming the developer's quota.
-
-------------------------------------------------------------------------
-
-## 🛡️ Public Safety Features
-
-To make KnowThyRepo safe for public deployment, the backend includes:
-
--   ✅ Rate limiting to prevent spam
--   ✅ Repository size limits (max file count + size)
--   ✅ Index caching (embeddings built only once per repo)
--   ✅ Automatic cleanup of old cloned repos
-
-------------------------------------------------------------------------
-
-## 🛠 Tech Stack
-
--   **Python 3.10+**
--   **Flask**
--   **FAISS**
--   **SentenceTransformers**
--   **Google Gemini API (`google-genai`)**
--   **Gunicorn**
-
-------------------------------------------------------------------------
-
-## 📦 Python Packages Required
+------------------------------------------------------------
+PYTHON PACKAGES REQUIRED
+------------------------------------------------------------
 
 Install dependencies:
 
-``` bash
 pip install flask
-pip install faiss-cpu
-pip install sentence-transformers
-pip install python-dotenv
 pip install google-genai
+pip install qdrant-client
+pip install python-dotenv
 pip install gunicorn
-```
+pip install numpy
 
-------------------------------------------------------------------------
+------------------------------------------------------------
+ENVIRONMENT VARIABLES
+------------------------------------------------------------
 
-## 🔥 API Usage
+Create a .env file with your Qdrant credentials:
 
-Generate your Gemini's API key from https://developers.google.com/
+QDRANT_URL=https://xxxx.qdrant.io
+QDRANT_API_KEY=your_qdrant_api_key
 
-Send a POST request:
+Gemini API key is provided by users via Authorization header.
 
-``` bash
-curl -X POST http://https://knowthyrepo.onrender.com/knowThyRepo \
+------------------------------------------------------------
+API USAGE
+------------------------------------------------------------
+
+Live API endpoint:
+
+https://knowthyrepo.onrender.com/knowThyRepo
+
+Example curl request:
+
+curl -X POST https://knowthyrepo.onrender.com/knowThyRepo \
   -H "Authorization: Bearer YOUR_GEMINI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "repoLink": "https://github.com/user/repo",
     "question": "What does this project do?"
   }'
-```
 
 Response:
 
-``` json
 {
   "answer": "This repository implements..."
 }
-```
 
-------------------------------------------------------------------------
+------------------------------------------------------------
+FUTURE SCOPE
+------------------------------------------------------------
 
-## 🌟 Project Scope
+- Integrate into a portfolio website for recruiter interaction
+- Add multi-turn chat memory
+- Detect repo updates and re-index only changed files
+- Add user authentication + quotas
+- Improve indexing speed with batch embeddings
 
--   Integrate into a portfolio website
--   Add multi-turn chat memory
--   Detect repo updates and re-index only changed files
--   Add user authentication + quotas
+------------------------------------------------------------
+LIVE DEPLOYMENT
+------------------------------------------------------------
 
+KnowThyRepo is publicly accessible at:
+
+https://knowthyrepo.onrender.com

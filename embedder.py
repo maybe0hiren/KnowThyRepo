@@ -1,60 +1,68 @@
-import json
 from typing import List, Dict
-from pathlib import Path
 
-import faiss
-# from sentence_transformers import SentenceTransformer as ST
 from google import genai
 import numpy as np
 
+from qdrant_client import QdrantClient
+from qdrant_client.models import VectorParams, Distance, PointStruct
 
-# modelName = "all-MiniLM-L6-v2"
+
 geminiEmbedder = "models/gemini-embedding-001"
 
 
-def embedder(chunks: List[Dict], repoName: str, apiKey: str) -> None:
+def embedder(chunks: List[Dict], repoName: str, apiKey: str,
+             qdrantUrl: str, qdrantKey: str) -> None:
+
     if not chunks:
         raise ValueError("No chunks provided")
-
-    repoFolder = Path("data") / repoName
-    repoFolder.mkdir(parents=True, exist_ok=True)
-
-    indexFile = repoFolder / "index.faiss"
-    metadataFile = repoFolder / "metadata.json"
-    chunksFile = repoFolder / "chunks.json"
-
-    # model = ST(modelName)
-    texts = [chunk["content"] for chunk in chunks]
 
     client = genai.Client(api_key=apiKey)
 
     vectors = []
-    for text in texts:
+    for chunk in chunks:
         response = client.models.embed_content(
             model=geminiEmbedder,
-            contents=text
+            contents=chunk["content"]
         )
         vectors.append(response.embeddings[0].values)
 
     embeddings = np.array(vectors).astype("float32")
+    dim = embeddings.shape[1]
 
-    dimension = embeddings.shape[1]
-    index = faiss.IndexFlatIP(dimension)
-    index.add(embeddings)
+    qdrant = QdrantClient(url=qdrantUrl, api_key=qdrantKey)
 
-    faiss.write_index(index, str(indexFile))
+    existing = [c.name for c in qdrant.get_collections().collections]
 
-    metadata = []
+    if repoName not in existing:
+        qdrant.create_collection(
+            collection_name=repoName,
+            vectors_config=VectorParams(
+                size=dim,
+                distance=Distance.COSINE
+            )
+        )
+
+    points = []
     for i, chunk in enumerate(chunks):
-        meta = chunk.copy()
-        meta.pop("content")
-        meta["vector_id"] = i
-        metadata.append(meta)
+        points.append(
+            PointStruct(
+                id=i,
+                vector=embeddings[i].tolist(),
+                payload={
+                    "chunkID": chunk["chunkID"],
+                    "path": chunk["path"],
+                    "language": chunk["language"],
+                    "chunkType": chunk["chunkType"],
+                    "content": chunk["content"],
+                    "startLine": chunk["startLine"],
+                    "endLine": chunk["endLine"]
+                }
+            )
+        )
 
-    with open(metadataFile, "w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2)
+    qdrant.upsert(
+        collection_name=repoName,
+        points=points
+    )
 
-    with open(chunksFile, "w", encoding="utf-8") as f:
-        json.dump(chunks, f, indent=2)
-
-    print(f"Stored embeddings + chunks for repo: {repoName}")
+    print(f"Stored embeddings in Qdrant for repo: {repoName}")
