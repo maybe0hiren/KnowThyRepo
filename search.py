@@ -27,11 +27,11 @@ def search(query: str, repoName: str, apiKey: str,
 
     qdrant = QdrantClient(url=qdrantUrl, api_key=qdrantKey)
 
-    results = qdrant.search(
+    results = qdrant.query_points(
         collection_name=repoName,
-        query_vector=queryVector,
+        query=queryVector,
         limit=top_k
-    )
+    ).points
 
     chunks = []
     for r in results:
