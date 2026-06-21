@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from main import main
-
+import csv
+from datetime import datetime
 import time
 import traceback
 
@@ -25,6 +26,11 @@ def rateLimited(ip: str) -> bool:
     ip_requests[ip].append(now)
     return False
 
+def logging(repo):
+    with open('FILE PATH', 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow([str(datetime.now()), repo]);
+
 
 @app.route("/")
 def home():
@@ -44,6 +50,8 @@ def knowThyRepo():
 
     repoLink = data.get("repoLink")
     question = data.get("question")
+
+    logging(repoLink)
 
     auth = request.headers.get("Authorization")
     if not auth or not auth.startswith("Bearer "):
