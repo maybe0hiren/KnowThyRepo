@@ -1,32 +1,26 @@
 from typing import List, Dict
-
-from google import genai
 import numpy as np
+
+from sentence_transformers import SentenceTransformer
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct
 
 
-geminiEmbedder = "models/gemini-embedding-001"
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
-def embedder(chunks: List[Dict], repoName: str, apiKey: str,
-             qdrantUrl: str, qdrantKey: str) -> None:
+def embedder(chunks: List[Dict], repoName: str,
+             qdrantUrl: str, qdrantKey: str):
 
     if not chunks:
         raise ValueError("No chunks provided")
 
-    client = genai.Client(api_key=apiKey)
+    texts = [c["content"] for c in chunks]
 
-    vectors = []
-    for chunk in chunks:
-        response = client.models.embed_content(
-            model=geminiEmbedder,
-            contents=chunk["content"]
-        )
-        vectors.append(response.embeddings[0].values)
+    embeddings = model.encode(texts, convert_to_numpy=True)
+    embeddings = embeddings.astype("float32")
 
-    embeddings = np.array(vectors).astype("float32")
     dim = embeddings.shape[1]
 
     qdrant = QdrantClient(url=qdrantUrl, api_key=qdrantKey)
@@ -43,20 +37,13 @@ def embedder(chunks: List[Dict], repoName: str, apiKey: str,
         )
 
     points = []
+
     for i, chunk in enumerate(chunks):
         points.append(
             PointStruct(
                 id=i,
                 vector=embeddings[i].tolist(),
-                payload={
-                    "chunkID": chunk["chunkID"],
-                    "path": chunk["path"],
-                    "language": chunk["language"],
-                    "chunkType": chunk["chunkType"],
-                    "content": chunk["content"],
-                    "startLine": chunk["startLine"],
-                    "endLine": chunk["endLine"]
-                }
+                payload=chunk
             )
         )
 

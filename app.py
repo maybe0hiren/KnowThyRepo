@@ -1,16 +1,19 @@
 from flask import Flask, request, jsonify
-from main import main
-import csv
-from datetime import datetime
+from pathlib import Path
+from flask import render_template
+
+
 import time
 import traceback
+import os
+
+from main import indexRepoMain, askMain
 
 app = Flask(__name__)
 
 RATE_LIMIT = 5
 WINDOW_SECONDS = 60
 ip_requests = {}
-
 
 def rateLimited(ip: str) -> bool:
     now = time.time()
@@ -32,40 +35,58 @@ def logging(repo):
         writer.writerow([str(datetime.now()), repo]);
 
 
+
 @app.route("/")
 def home():
-    return "KnowThyRepo is running!"
+    return render_template("index.html")
 
 
-@app.route("/knowThyRepo", methods=["POST"])
-def knowThyRepo():
+@app.route("/indexRepo", methods=["POST"])
+def indexRepo():
     ip = request.remote_addr
 
     if rateLimited(ip):
-        return jsonify({"error": "Too many requests. Try again later."}), 429
+        return jsonify({"error": "Too many requests"}), 429
 
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "Missing JSON body"}), 400
+    repoLink = data.get("repoLink")
+
+    if not repoLink:
+        return jsonify({"error": "repoLink required"}), 400
+
+    try:
+        result = indexRepoMain(repoLink)
+        return jsonify({"status": result})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": repr(e)}), 500
+
+
+@app.route("/ask", methods=["POST"])
+def ask():
+    ip = request.remote_addr
+
+    if rateLimited(ip):
+        return jsonify({"error": "Too many requests"}), 429
+
+    data = request.get_json()
 
     repoLink = data.get("repoLink")
-    question = data.get("question")
 
     logging(repoLink)
 
+    question = data.get("question")
+
     auth = request.headers.get("Authorization")
+
     if not auth or not auth.startswith("Bearer "):
         return jsonify({"error": "Missing Authorization header"}), 401
 
     apiKey = auth.replace("Bearer ", "").strip()
 
-    if not repoLink or not question or not apiKey:
-        return jsonify({"error": "Required fields: repoLink, question, apiKey"}), 400
-
     try:
-        answer = main(apiKey, repoLink, question)
+        answer = askMain(repoLink, question, apiKey)
         return jsonify({"answer": answer})
-
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": repr(e)}), 500

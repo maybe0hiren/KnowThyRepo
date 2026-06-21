@@ -45,8 +45,8 @@ KnowThyRepo follows a Retrieval-Augmented Generation (RAG) workflow:
    - SentenceTransformers support exists, but Gemini embeddings are used
      for lightweight public hosting.
 
-5. Persistent Storage with Qdrant Cloud
-   - Embeddings are stored permanently in Qdrant Cloud instead of local disk.
+5. Persistent Storage with Qdrant
+   - Embeddings are stored permanently in Qdrant's Vector DB instead of local disk.
    - Each repository becomes its own Qdrant collection:
 
        Collection Name: KnowThyRepo
@@ -57,7 +57,7 @@ KnowThyRepo follows a Retrieval-Augmented Generation (RAG) workflow:
 
 6. Retrieval + Answer Generation
    - User question is embedded using Gemini
-   - Qdrant similarity search retrieves top relevant chunks
+   - Similarity search retrieves top relevant chunks
    - Gemini generates an answer using ONLY retrieved context
 
 ------------------------------------------------------------
@@ -89,9 +89,8 @@ TECH STACK
 - Flask
 - Google Gemini API (google-genai)
 - Gemini Embedding Models
-- Qdrant Cloud Vector Database
+- Qdrant Vector Database
 - Gunicorn
-- Render Deployment
 
 ------------------------------------------------------------
 PYTHON PACKAGES REQUIRED
@@ -127,12 +126,18 @@ https://knowthyrepo.onrender.com/knowThyRepo
 
 Example curl request:
 
-curl -X POST https://knowthyrepo.onrender.com/knowThyRepo \
-  -H "Authorization: Bearer YOUR_GEMINI_API_KEY" \
+curl -X POST "https://knowthyrepo.hirenlabs.com/indexRepo" \
   -H "Content-Type: application/json" \
   -d '{
-    "repoLink": "https://github.com/user/repo",
-    "question": "What does this project do?"
+    "repoLink": "https://github.com/owner/repo"
+  }'
+
+curl -X POST "https://knowthyrepo.hirenlabs.com/ask" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_GEMINI_API_KEY" \
+  -d '{
+    "repoLink": "https://github.com/owner/repo",
+    "question": "How does authentication work in this repository?"
   }'
 
 Response:
@@ -145,11 +150,9 @@ Response:
 FUTURE SCOPE
 ------------------------------------------------------------
 
-- Integrate into a portfolio website for recruiter interaction
 - Add multi-turn chat memory
 - Detect repo updates and re-index only changed files
 - Add user authentication + quotas
-- Improve indexing speed with batch embeddings
 
 ------------------------------------------------------------
 LIVE DEPLOYMENT
@@ -157,4 +160,4 @@ LIVE DEPLOYMENT
 
 KnowThyRepo is publicly accessible at:
 
-https://knowthyrepo.onrender.com
+https://knowthyrepo.hirenlabs.com

@@ -7,60 +7,60 @@ from embedder import embedder
 from search import search
 from llmInteraction import llmInteraction
 from repoCloner import repoCloner
-
 from repoGuard import validateRepo
 
 from qdrant_client import QdrantClient
 
 
-def main(apiKey: str, repoLink: str, question: str) -> str:
+def indexRepoMain(repoLink: str):
 
     qdrantUrl = os.getenv("QDRANT_URL")
     qdrantKey = os.getenv("QDRANT_KEY")
 
-    if not qdrantUrl or not qdrantKey:
-        return "Qdrant credentials missing in environment."
-
     projectPath = repoCloner(repoLink)
     projectRoot = Path(projectPath).resolve()
 
-    if not projectRoot.exists() or not projectRoot.is_dir():
-        return "Repository could not be cloned or accessed."
+    if not projectRoot.exists():
+        raise RuntimeError("Repo clone failed")
 
     repoName = projectRoot.name
 
-    try:
-        validateRepo(str(projectRoot))
-    except Exception as e:
-        return f"Repo rejected: {str(e)}"
+    validateRepo(str(projectRoot))
 
     qdrant = QdrantClient(url=qdrantUrl, api_key=qdrantKey)
+
     existing = [c.name for c in qdrant.get_collections().collections]
 
     if repoName in existing:
-        print(f"Repo '{repoName}' already indexed in Qdrant, skipping embedding...")
-    else:
-        print(f"Indexing repo: {repoName}")
+        return "Repository already indexed"
 
-        scanned = projectScanner(str(projectRoot))
-        chunks = chunker(scanned)
+    scanned = projectScanner(str(projectRoot))
+    chunks = chunker(scanned)
 
-        embedder(chunks, repoName, apiKey, qdrantUrl, qdrantKey)
+    embedder(chunks, repoName, qdrantUrl, qdrantKey)
+
+    return "Repository indexed successfully"
+
+
+def askMain(repoLink: str, question: str, apiKey: str):
+
+    qdrantUrl = os.getenv("QDRANT_URL")
+    qdrantKey = os.getenv("QDRANT_KEY")
+
+    repoName = repoLink.rstrip("/").split("/")[-1].replace(".git", "")
 
     retrievedChunks = search(
         question,
         repoName,
-        apiKey,
         qdrantUrl,
         qdrantKey,
         top_k=6
     )
 
     if not retrievedChunks:
-        return "No relevant context found in this repository."
+        return "No relevant context found."
 
-    try:
-        answer = llmInteraction(question, retrievedChunks, apiKey)
-        return answer
-    except Exception as e:
-        return f"LLM Error: {str(e)}"
+    answer = llmInteraction(question, retrievedChunks, apiKey)
+
+    return answer
+
