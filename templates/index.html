@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KnowThyRepo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="header">
+    <h1>KnowThyRepo</h1>
+    <p>Backend API Open To All</p>
+</div>
+
+<div class="container">
+
+    <div class="left-panel">
+
+        <div class="card">
+            <div class="card-header">
+                <h3>JavaScript API</h3>
+                <button onclick="copyCode('jsCode')">Copy</button>
+            </div>
+
+            <pre id="jsCode">
+await fetch("/indexRepo", {
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json"
+  },
+  body:JSON.stringify({
+    repoLink:"YOUR_REPO"
+  })
+});
+
+const response = await fetch("/ask",{
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json",
+    "Authorization":"Bearer YOUR_GEMINI_KEY"
+  },
+  body:JSON.stringify({
+    repoLink:"YOUR_REPO",
+    question:"How does authentication work?"
+  })
+});
+
+console.log(await response.json());
+            </pre>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>Flask API</h3>
+                <button onclick="copyCode('pyCode')">Copy</button>
+            </div>
+
+            <pre id="pyCode">
+import requests
+
+requests.post(
+    "/indexRepo",
+    json={
+        "repoLink":"YOUR_REPO"
+    }
+)
+
+response = requests.post(
+    "/ask",
+    headers={
+        "Authorization":"Bearer YOUR_GEMINI_KEY"
+    },
+    json={
+        "repoLink":"YOUR_REPO",
+        "question":"How does authentication work?"
+    }
+)
+
+print(response.json())
+            </pre>
+        </div>
+
+    </div>
+
+    <div class="right-panel">
+
+        <div class="settings">
+
+            <input
+                id="apiKey"
+                type="password"
+                placeholder="Gemini API Key"
+            >
+
+            <div class="repo-row">
+                <input
+                    id="repoLink"
+                    type="text"
+                    placeholder="Repository Link"
+                >
+
+                <button id="repoBtn" onclick="setRepository()">
+                    Set Repo
+                </button>
+            </div>
+
+        </div>
+
+        <div id="chatWindow" class="chat-window"></div>
+
+        <div class="chat-input">
+            <input
+                id="messageInput"
+                placeholder="Ask about the repository..."
+            >
+            <button onclick="sendMessage()">Send</button>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="footer">
+    KnowThyRepo is open source. Gemini API keys are never stored,
+    logged, or persisted by this service.
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
