@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
 from pathlib import Path
 from flask import render_template
-import csv
 from datetime import datetime
+import csv
 import time
 import traceback
 import os
@@ -29,10 +29,10 @@ def rateLimited(ip: str) -> bool:
     ip_requests[ip].append(now)
     return False
 
-def logging(repo):
-    with open('FILE PATH', 'w', newline='') as csvfile:
+def logging(repo, timeTaken, status):
+    with open('FILE', 'a', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow([str(datetime.now()), repo]);
+        writer.writerow([str(datetime.now()), repo, str(timeTaken), status]);
 
 
 
@@ -64,33 +64,32 @@ def indexRepo():
 
 @app.route("/ask", methods=["POST"])
 def ask():
-    ip = request.remote_addr
 
+    auth = request.headers.get("Authorization")
+    if not auth or not auth.startswith("Bearer "):
+        return jsonify({"error": "Missing Authorization header"}), 401
+
+    timeStart = time.perf_counter()
+
+    ip = request.remote_addr
     if rateLimited(ip):
         return jsonify({"error": "Too many requests"}), 429
 
     data = request.get_json()
-
     repoLink = data.get("repoLink")
-
-    logging(repoLink)
-
     question = data.get("question")
-
-    auth = request.headers.get("Authorization")
-
-    if not auth or not auth.startswith("Bearer "):
-        return jsonify({"error": "Missing Authorization header"}), 401
-
     apiKey = auth.replace("Bearer ", "").strip()
 
     try:
         answer = askMain(repoLink, question, apiKey)
+        timeTaken = int((time.perf_counter() - timeStart) * 1000)
+        logging(repoLink, timeTaken, "Success")
         return jsonify({"answer": answer})
     except Exception as e:
         traceback.print_exc()
+        timeTaken = int((time.perf_counter() - start) * 1000)
+        logging(repoLink, timeTaken, "Failed")
         return jsonify({"error": repr(e)}), 500
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
