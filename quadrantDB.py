@@ -19,3 +19,25 @@ def createCollection(repoName: str, dim: int):
                 distance=Distance.COSINE
             )
         )
+
+
+def listCollections():
+    client = getClient()
+    return [collection.name for collection in client.get_collections().collections]
+
+
+def deleteCollection(repoName: str):
+    client = getClient()
+
+    if repoName in listCollections():
+        client.delete_collection(collection_name=repoName)
+        return True
+
+    return False
+
+
+def deleteAllCollections():
+    client = getClient()
+
+    for collectionName in listCollections():
+        client.delete_collection(collection_name=collectionName)

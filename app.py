@@ -7,7 +7,7 @@ import time
 import traceback
 import os
 
-from main import indexRepoMain, askMain
+from main import main
 
 app = Flask(__name__)
 
@@ -41,55 +41,50 @@ def home():
     return render_template("index.html")
 
 
-@app.route("/indexRepo", methods=["POST"])
-def indexRepo():
-    ip = request.remote_addr
-
-    if rateLimited(ip):
-        return jsonify({"error": "Too many requests"}), 429
-
-    data = request.get_json()
-    repoLink = data.get("repoLink")
-
-    if not repoLink:
-        return jsonify({"error": "repoLink required"}), 400
-
-    try:
-        result = indexRepoMain(repoLink)
-        return jsonify({"status": result})
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": repr(e)}), 500
-
-
 @app.route("/ask", methods=["POST"])
-def ask():
-
+def askQuestion():
+    timeStart = time.perf_counter()
     auth = request.headers.get("Authorization")
     if not auth or not auth.startswith("Bearer "):
+        traceback.print_exc()
+        timeTaken = int((time.perf_counter() - start) * 1000)
+        logging(repoLink, timeTaken, "Failed - Unauthorized")
         return jsonify({"error": "Missing Authorization header"}), 401
-
-    timeStart = time.perf_counter()
 
     ip = request.remote_addr
     if rateLimited(ip):
+        traceback.print_exc()
+        timeTaken = int((time.perf_counter() - start) * 1000)
+        logging(repoLink, timeTaken, "Failed - RequestLimit")
         return jsonify({"error": "Too many requests"}), 429
 
     data = request.get_json()
     repoLink = data.get("repoLink")
+    if not repoLink:
+        traceback.print_exc()
+        timeTaken = int((time.perf_counter() - start) * 1000)
+        logging(repoLink, timeTaken, "Failed - Missing Repo")
+        return jsonify({"error": "repoLink required"}), 400
     question = data.get("question")
+    if not repoLink:
+        traceback.print_exc()
+        timeTaken = int((time.perf_counter() - start) * 1000)
+        logging(repoLink, timeTaken, "Failed - Missing Question")
+        return jsonify({"error": "Question required"}), 400
     apiKey = auth.replace("Bearer ", "").strip()
 
     try:
-        answer = askMain(repoLink, question, apiKey)
+        answer = main(repoLink, question, apiKey)
         timeTaken = int((time.perf_counter() - timeStart) * 1000)
         logging(repoLink, timeTaken, "Success")
         return jsonify({"answer": answer})
     except Exception as e:
         traceback.print_exc()
         timeTaken = int((time.perf_counter() - start) * 1000)
-        logging(repoLink, timeTaken, "Failed")
+        logging(repoLink, timeTaken, "Failed - Execution error")
         return jsonify({"error": repr(e)}), 500
+
+    
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
