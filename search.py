@@ -1,31 +1,27 @@
 from typing import List, Dict
 
-from google import genai
 import numpy as np
+from sentence_transformers import SentenceTransformer
 
 from qdrant_client import QdrantClient
 
 
-geminiEmbedder = "models/gemini-embedding-001"
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
-def search(query: str, repoName: str, apiKey: str,
-           qdrantUrl: str, qdrantKey: str,
-           top_k: int = 6) -> List[Dict]:
+def search(
+    query: str,
+    repoName: str,
+    qdrantUrl: str,
+    top_k: int = 6
+) -> List[Dict]:
 
-    client = genai.Client(api_key=apiKey)
+    queryVector = model.encode(
+        query,
+        convert_to_numpy=True
+    ).astype("float32").tolist()
 
-    response = client.models.embed_content(
-        model=geminiEmbedder,
-        contents=query
-    )
-
-    queryVector = np.array(
-        response.embeddings[0].values,
-        dtype="float32"
-    ).tolist()
-
-    qdrant = QdrantClient(url=qdrantUrl, api_key=qdrantKey)
+    qdrant = QdrantClient(url=qdrantUrl)
 
     results = qdrant.query_points(
         collection_name=repoName,
@@ -34,9 +30,10 @@ def search(query: str, repoName: str, apiKey: str,
     ).points
 
     chunks = []
-    for r in results:
-        payload = r.payload
-        payload["score"] = r.score
+
+    for result in results:
+        payload = result.payload
+        payload["score"] = result.score
         chunks.append(payload)
 
     return chunks

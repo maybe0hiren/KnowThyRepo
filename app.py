@@ -32,7 +32,8 @@ def rateLimited(ip: str) -> bool:
     return False
 
 def logging(repo, timeTaken, status):
-    with open('FILE', 'a', newline='') as csvfile:
+    logFile = os.getenv("LOG_FILE")
+    with open(logFile, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         writer.writerow([str(datetime.now()), repo, str(timeTaken), status]);
 

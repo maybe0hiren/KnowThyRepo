@@ -80,6 +80,8 @@ def index(repoLink: str, newHash: str):
         chunks = chunker(scanned)
 
         print("Embedding")
+        print(embedder)
+        print(type(embedder))
         embedder(
             chunks,
             repoName,
@@ -111,7 +113,6 @@ def ask(repoLink: str, question: str, apiKey: str):
         question,
         repoName,
         os.getenv("QDRANT_URL"),
-        os.getenv("QDRANT_API_KEY"),
         top_k=6
     )
 
