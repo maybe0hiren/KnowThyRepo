@@ -2,11 +2,13 @@ import os
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance
 
+
 def getClient():
     return QdrantClient(
         url=os.getenv("QDRANT_URL"),
         api_key=os.getenv("QDRANT_API_KEY")
     )
+
 
 def createCollection(repoName: str, dim: int):
     client = getClient()
@@ -29,7 +31,7 @@ def listCollections():
 def deleteCollection(repoName: str):
     client = getClient()
 
-    if repoName in listCollections():
+    if repoName in [c.name for c in client.get_collections().collections]:
         client.delete_collection(collection_name=repoName)
         return True
 
@@ -39,5 +41,5 @@ def deleteCollection(repoName: str):
 def deleteAllCollections():
     client = getClient()
 
-    for collectionName in listCollections():
-        client.delete_collection(collection_name=collectionName)
+    for collection in client.get_collections().collections:
+        client.delete_collection(collection_name=collection.name)
