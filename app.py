@@ -7,8 +7,10 @@ import time
 import traceback
 import os
 
+import sqlDB
 from main import main
 
+sqlDB.createTable()
 app = Flask(__name__)
 
 RATE_LIMIT = 5
@@ -43,18 +45,19 @@ def home():
 
 @app.route("/ask", methods=["POST"])
 def askQuestion():
+    repoLink = "None"
     timeStart = time.perf_counter()
     auth = request.headers.get("Authorization")
     if not auth or not auth.startswith("Bearer "):
         traceback.print_exc()
-        timeTaken = int((time.perf_counter() - start) * 1000)
+        timeTaken = int((time.perf_counter() - timeStart) * 1000)
         logging(repoLink, timeTaken, "Failed - Unauthorized")
         return jsonify({"error": "Missing Authorization header"}), 401
 
     ip = request.remote_addr
     if rateLimited(ip):
         traceback.print_exc()
-        timeTaken = int((time.perf_counter() - start) * 1000)
+        timeTaken = int((time.perf_counter() - timeStart) * 1000)
         logging(repoLink, timeTaken, "Failed - RequestLimit")
         return jsonify({"error": "Too many requests"}), 429
 
@@ -62,13 +65,13 @@ def askQuestion():
     repoLink = data.get("repoLink")
     if not repoLink:
         traceback.print_exc()
-        timeTaken = int((time.perf_counter() - start) * 1000)
+        timeTaken = int((time.perf_counter() - timeStart) * 1000)
         logging(repoLink, timeTaken, "Failed - Missing Repo")
         return jsonify({"error": "repoLink required"}), 400
     question = data.get("question")
-    if not repoLink:
+    if not question:
         traceback.print_exc()
-        timeTaken = int((time.perf_counter() - start) * 1000)
+        timeTaken = int((time.perf_counter() - timeStart) * 1000)
         logging(repoLink, timeTaken, "Failed - Missing Question")
         return jsonify({"error": "Question required"}), 400
     apiKey = auth.replace("Bearer ", "").strip()
@@ -80,7 +83,7 @@ def askQuestion():
         return jsonify({"answer": answer})
     except Exception as e:
         traceback.print_exc()
-        timeTaken = int((time.perf_counter() - start) * 1000)
+        timeTaken = int((time.perf_counter() - timeStart) * 1000)
         logging(repoLink, timeTaken, "Failed - Execution error")
         return jsonify({"error": repr(e)}), 500
 

@@ -17,6 +17,7 @@ import quadrantDB
 
 
 def checkRepoStatus(repoLink: str):
+    print("checking repo status")
     if sqlDB.repoExists(repoLink):
         
         result = subprocess.run(
@@ -27,20 +28,16 @@ def checkRepoStatus(repoLink: str):
         )
         repoHash = result.stdout.split()[0]
 
-        return [hashMatches(repoLink, repoHash), repoHash]
-    return [False, NULL]
+        return [sqlDB.hashMatches(repoLink, repoHash), repoHash]
+    return [False, None]
 
 def index(repoLink: str, newHash: str):
-
+    print("cloning repo")
     projectPath = repoCloner(repoLink)
     projectRoot = Path(projectPath).resolve()
     if not projectRoot.exists():
         raise RuntimeError("Repo clone failed")
     repoName = projectRoot.name
-
-    quadrantDB.createCollection(repoName)
-    updateHash(repoLink, newHash)
-
     qdrantUrl = os.getenv("QDRANT_URL")
     qdrantKey = os.getenv("QDRANT_KEY")
     validateRepo(str(projectRoot))
@@ -48,8 +45,16 @@ def index(repoLink: str, newHash: str):
     existing = [c.name for c in qdrant.get_collections().collections]
     if repoName in existing:
         return "Repository already indexed"
+    quadrantDB.createCollection(repoName, 3072)
+    if sqlDB.repoExists(repoLink):
+        sqlDB.updateHash(repoLink, newHash)
+    else:
+        sqlDB.insertRepo(repoLink, newHash)
+    print("Scanning")
     scanned = projectScanner(str(projectRoot))
+    print("chunking")
     chunks = chunker(scanned)
+    print("Embedding")
     embedder(chunks, repoName, qdrantUrl, qdrantKey)
 
     result = subprocess.run(
@@ -62,12 +67,12 @@ def index(repoLink: str, newHash: str):
 
 
 def ask(repoLink: str, question: str, apiKey: str):
-
+    print("asking LLM")
     qdrantUrl = os.getenv("QDRANT_URL")
     qdrantKey = os.getenv("QDRANT_KEY")
 
     repoName = repoLink.rstrip("/").split("/")[-1].replace(".git", "")
-
+    print("Getting chunks")
     retrievedChunks = search(
         question,
         repoName,
@@ -89,6 +94,6 @@ def main(repoLink: str, question: str, apiKey: str):
     if status:
         return ask(repoLink, question, apiKey)
     else:
-        if index(repoLink) == 0:
+        if index(repoLink, repoHash) == 0:
             return ask(repoLink, question, apiKey)
 
